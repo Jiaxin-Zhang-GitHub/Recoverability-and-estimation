@@ -1,0 +1,105 @@
+#################################################################################
+#  simulation.pbs                                                               # 
+#  pbs file for simulation using HPC                                            #
+#################################################################################
+#!/bin/bash
+
+##########################
+#                        #
+#   The PBS directives   #
+#                        #
+##########################
+
+# Define the shell in which your jobs should run. Shouldn't really be changed
+# unless you have a very specific reason for doing so
+#PBS -S /bin/bash
+
+# Define the name for the job
+#PBS -N simulation
+
+# Define a new name for the .o file
+#PBS -o simulation.o
+#
+# If you don't want a .o file
+# #PBS -o /dev/null
+
+# Define a new name for the .e file
+# #PBS -e <new name>
+#
+# If you don't want a .e file
+# #PBS -e /dev/null
+
+# If you want to merge the standard error file into the standard output file
+#PBS -j oe
+
+# Defining the wall time for the job
+#PBS -l walltime=100:00:00
+
+# Selecting which queue to send the job to
+#PBS -q batch
+
+# Defining the amount of memory you require
+#PBS -l mem=6GB
+
+# Defining email notifications
+## a = notify when job aborts (default)
+## b = notify when job begins
+## e = notify when job terminates
+## n = no mail at all (If specified takes precedence)
+# #PBS -m n
+
+# Define the email address to be used in correspondence
+#PBS -M jiaxin.zhang@mcri.edu.au
+
+
+# Define the number of nodes and cores you require
+#PBS -l nodes=1:ppn=4
+
+# Define which project i am with
+#PBS -A cebu
+
+##########################################
+#                                        #
+#   Output some useful job information.  #
+#                                        #
+##########################################
+
+echo ------------------------------------------------------
+  echo -n 'Job is running on node '; cat $PBS_NODEFILE
+echo ------------------------------------------------------
+  echo PBS: qsub was run on $PBS_O_HOST
+echo PBS: originating queue is $PBS_O_QUEUE
+echo PBS: executing queue is $PBS_QUEUE
+echo PBS: working directory is $PBS_O_WORKDIR
+echo PBS: execution mode is $PBS_ENVIRONMENT
+echo PBS: job identifier is $PBS_JOBID
+echo PBS: job name is $PBS_JOBNAME
+echo PBS: node file is $PBS_NODEFILE
+echo PBS: current home directory is $PBS_O_HOME
+echo PBS: temporary directory on node is $TMPDIR
+echo PBS: PATH = $PBS_O_PATH
+echo ------------------------------------------------------
+  
+  runJob()
+{
+  module load R/4.1.2
+  
+  Rscript Simu.R $exposure $mDAG $method $scenario
+  }
+
+
+# ----- Notifies you that your job terminated early ----- #
+earlyTermination()
+{
+  echo ' '
+  echo ' ############ WARNING:  EARLY TERMINATION #############'
+  echo ' '
+}
+trap 'earlyTermination;' 2 9 15
+# ------------------------------------------------------- #
+
+# Run the steps required to complete this job
+runJob
+
+exit
+
