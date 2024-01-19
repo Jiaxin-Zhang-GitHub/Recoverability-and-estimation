@@ -8,34 +8,35 @@ Title: "Recoverability and estimation of causal effects under typical multivaria
 Authors: Jiaxin Zhang, S.Ghazaleh Dashti, John B. Carlin, Katherine J. Lee and Margarita Moreno-Betancur
 
 Code was written by Jiaxin Zhang
-In case of questions or comments please contact jiaxin.zhang@mcri.edu.au
+In case of questions or comments, please contact jiaxin.zhang@mcri.edu.au
 
-This repository contains the following data and files that can be used to reproduce all results of the manuscrtipt.
+This repository contains the following data and files that can be used to reproduce all results in the manuscript.
 
 -DataCleaning.R
-Data Cleaning for the original data from the Victorian Adolescent Health Cohort Study (VAHCS). Note: For ethical reasons, the original raw data set is not allowed to be public. Please contact the author for further information. The final dataset used for case and simultaion study is save as VAHCS.CleanData.Rda, which was summarised as VAHCS-Table1.csv and corresponds to Table 1 in the manuscript. 
+Data Cleaning for the original data from the Victorian Adolescent Health Cohort Study (VAHCS). Note: For ethical reasons, the original raw data set is not allowed to be public. Please contact the author for further information. The final dataset used for the case and simulation study is saved in data/VAHCS.CleanData.Rda. The data description and summarised statistics were saved in data/VAHCS-Table1.csv and correspond to Table 1 in the manuscript. 
 
 -CaseStudy.R
-Conduct the case study. The results are save as Case.Rda and corresponds to Table 6 in the manuscript.
+Conduct the case study. The results are saved in results/Case.Rda and correspond to Table 6 in the manuscript.
 
 -Source.R
-The functions used for data generation in Simu.control.R.
+The functions used for data generation in code/Simu.control.R.
 
 -Simu.control.R
-Control parameterics for simulation. In detail:
-Line 1-96: Save regression coefficients (coef.VAHCS.Rda) and missingness coefficients (coef.M.Rda) 
-Line 97-137: Adjust confoudners and exposure prevalence (coef.X.Rda)
-Line 148-190: Adjust coefficients in the outcome generation (coef.X.Rda)
-Line 191-256: Adjust missingness proportion (coef.M.Rda)
-Line 257-274: Find out the appropriate sample sizes (sample.size.Rda)
-Line 275-296: Find out the number of bootstrapping 
-Line 297-330: Generate incomplete data for missingness methods (e.g. data.50%.C.Rda and res.50%.C.Rda)
+Control parameters for the simulation. In detail:
+Line 1-96: Save regression coefficients (data/coef.VAHCS.Rda) and missingness coefficients (data/coef.M.Rda) 
+Line 99-137: Adjust confounders and exposure prevalence (data/coef.X.Rda)
+Line 140-190: Adjust coefficients in the outcome generation (data/coef.X.Rda)
+Line 193-258: Adjust missingness proportion (data/coef.M.Rda)
+Line 261-276: Find out the appropriate sample sizes (data/sample.size.Rda)
+Line 279-298: Find out the number of bootstrapping 
+Line 301-336: Generate incomplete data for missingness methods (e.g. data/data.50%.C.Rda and results/res.50%.C.Rda)
+Please note the generated incomplete data, like data.50%.C.Rda, is a large dataset and results in difficulties in sharing data and code for reproducing checks. Therefore, the shared files exclude such datasets. But please run the commands in Line 301-336 to generate and save the dataset in the data fold for the later call in the Simu.R.
 
 -Methods.R
-Funtions for handling missing data and conduting analysis that used in case and simution study. 
+Functions for handling missing data and conducting analyses that are used in case and simulation study. 
 
 -Simu.R
-Conduct simulation study over HPC. Save the simulation results in, e.g., res.50%.C.Rda.
+Conduct simulation study over HPC. Save the simulation results in, e.g., results/res.50%.C.Rda.
 Please use the Simu.pbs to submit Simu.R. The replications are:
 for exposure in 10% 50%
 do
@@ -52,7 +53,7 @@ done
 done
 
 -Plot.R
-Summarise and plot the simulation results (res.10%.Rda and res.50%.Rda), corresponds to Figures 3-5 in the manuscript.
+Summarise and plot the simulation results (results/res.10%.Rda and results/res.50%.Rda), corresponding to Figures 3-5 in the manuscript.
 
 -dosearch.R
 Investigate recoverability using `dosearch' package.
