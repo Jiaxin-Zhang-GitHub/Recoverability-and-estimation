@@ -34,7 +34,7 @@ dat <- dat[,-8]
 dat[2:7] <- lapply(dat[2:7], as.factor)
 names(dat)[1:8] <- c("age","pari","pard","asb","cmd","alc","thc","mhs")
 dat <- as.data.frame(dat)
-save(dat, file = "VAHCS.CleanData.Rda")
+save(dat, file = "data/VAHCS.CleanData.Rda")
 
 # Table One
 factorVars <- c("alc", "asb", "cmd", "pard", "pari")
@@ -46,4 +46,4 @@ tableOne <- CreateTableOne(vars = vars, strata = "thc", data = dat, factorVars =
 # number(%) of parental divorce; number(%) of antisocial behavior; number(%) of adolescent depression and anxiety;
 # number(%) of alcohol use; mean(SD) of adulthood mental health score
 VAHCS.table1 <- print(tableOne, missing = T, explain = T, printToggle = T)
-write.csv(VAHCS.table1, file = "VAHCS-Table1.csv")
+write.csv(VAHCS.table1, file = "data/VAHCS-Table1.csv")
