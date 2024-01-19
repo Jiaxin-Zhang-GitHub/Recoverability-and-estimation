@@ -30,7 +30,7 @@ Line 193-258: Adjust missingness proportion (data/coef.M.Rda)
 Line 261-276: Find out the appropriate sample sizes (data/sample.size.Rda)
 Line 279-298: Find out the number of bootstrapping 
 Line 301-336: Generate incomplete data for missingness methods (e.g. data/data.50%.C.Rda and results/res.50%.C.Rda)
-Please note the generated incomplete data, like data.50%.C.Rda, is a large dataset and results in difficulties in sharing data and code for reproducing checks. Therefore, the shared files exclude such datasets. But please run the commands in Line 301-336 to generate and save the dataset in the data fold for the later call in the Simu.R.
+Please note that the generated incomplete data are represented by large files, such as data.50%.C.Rda, that take up a lot of disk space. Therefore, it was necessary to exclude these files here. To generate and save these files for later use in Simu.R, please execute the commands in Lines 301-336.
 
 -Methods.R
 Functions for handling missing data and conducting analyses that are used in case and simulation study. 
