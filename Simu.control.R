@@ -1,9 +1,11 @@
 #################################################################################
 #  Save regression coefficients and missingness coefficients                    #
 #################################################################################
-load("VAHCS.CleanData.Rda")
+load("data/VAHCS.CleanData.Rda")
 
-# function: read the regression coefficients
+# Function to get coefficients for data generation
+# @param i List returned from glm function
+# @return regression coefficients from the glm
 coeff <- function(i){
   return(t(as.matrix(coef(i))))
 }
@@ -23,7 +25,7 @@ coef <- list(b.C1, b.C2, b.C3, b.C4, b.C5, b.X, b.I, b.II, b.III, b.IV, b.V, b.V
 coef <- as.data.frame(sapply(coef, '[', seq(max(sapply(coef, length)))))
 names(coef)[1:12] <- c("b.C1", "b.C2", "b.C3", "b.C4", "b.C5", "b.X", "b.I", "b.II", "b.III", "b.IV", "b.V", "b.VI")
 coef <- round(coef, digits = 3)
-save(coef, file = "coef.X.Rda")
+save(coef, file = "data/coef.X.Rda")
 
 # Missingness indicators
 dat$M.C4 <- as.numeric(is.na(dat$cmd))
@@ -91,7 +93,7 @@ coef.M <- lapply(LETTERS[1:10], function(m.DAG){
         `colnames<-`(c("M.C4","M.C5","M.X","M.Y"))}
   }) %>% `names<-`(c("i","ii","iii","iv","v")) %>% list(.,.,.,.,.,.) %>% `names<-`(c("I","II","III","IV","V","VI"))
 }) %>% `names<-`(LETTERS[1:10]) %>% list(.,.) %>% `names<-`(c("10%","50%"))
-save(coef.M, file = "coef.M.Rda")
+save(coef.M, file = "data/coef.M.Rda")
 
 
 #################################################################################
@@ -99,7 +101,7 @@ save(coef.M, file = "coef.M.Rda")
 #################################################################################
 rm(list=ls())
 cl <- makeCluster(31)
-parLapply(cl, c(1:31), function(x) {source(file = "Source.R")})
+parLapply(cl, c(1:31), function(x) {source(file = "code/Source.R")})
 C3.prop <- parLapply(cl, c(seq(1.3,1.4,0.001)), function(delta){
   adj.coef <- coef
   adj.coef[1,3] <- adj.coef[1,3] + delta
@@ -110,15 +112,15 @@ C3.prop <- parLapply(cl, c(seq(1.3,1.4,0.001)), function(delta){
     apply(., 2, mean) %>% cbind(adj.coef[1,3], abs(. - 0.3))
 }) %>% ldply(., data.frame)
 stopCluster(cl)
-load("coef.X.Rda")
+load("data/coef.X.Rda")
 coef[1,3] <- C3.prop[C3.prop[,3]==min(C3.prop[,3]),2]
 coef.X <- list(coef, coef) %>% `names<-`(c("10%","50%"))
-save(coef.X, file = "coef.X.Rda")
+save(coef.X, file = "data/coef.X.Rda")
 
 
 rm(list=ls())
 cl <- makeCluster(24)
-parLapply(cl, c(1:24), function(x) {source(file = "Source.R")})
+parLapply(cl, c(1:24), function(x) {source(file = "code/Source.R")})
 X.prop <- parLapply(cl, c(seq(-1.05,-0.95,0.001), seq(2.8,2.9,0.001)), function(delta){
   adj.coef <- coef.X[["10%"]]
   adj.coef[1,6] <- adj.coef[1,6] + delta
@@ -132,7 +134,7 @@ stopCluster(cl)
 load("coef.X.Rda")
 coef.X[["10%"]][1,6] <- X.prop[X.prop[,3]==min(X.prop[,3]),2] 
 coef.X[["50%"]][1,6] <- X.prop[X.prop[,4]==min(X.prop[,4]),2]
-save(coef.X, file = "coef.X.Rda")
+save(coef.X, file = "data/coef.X.Rda")
 
 
 #################################################################################
@@ -140,8 +142,8 @@ save(coef.X, file = "coef.X.Rda")
 #################################################################################
 rm(list=ls())
 cl <- makeCluster(11)
-parLapply(cl, c(1:11), function(x) {source(file = "Source.R")})
-load("coef.X.Rda")
+parLapply(cl, c(1:11), function(x) {source(file = "code/Source.R")})
+load("data/coef.X.Rda")
 
 # set the initial value
 coef.X[["10%"]][7,7:12] <- c(0.300, 0.263, 0.439, 0.358, 0.157, -0.348)
@@ -185,7 +187,7 @@ coef.X[["50%"]][7,7:12] <- parLapply(cl, seq(-0.1, 0.1, 0.02), function(delta){
 coef.X[["50%"]][13,8:12] <- coef.X[["50%"]][7,8:12] %>% `*`(c(1/2, -1/2, 1/2, 3, -3))
 coef.X[["50%"]][14,10] <- coef.X[["50%"]][7,10]*(-1/2)
 stopCluster(cl)
-save(coef.X, file = "coef.X.Rda")
+save(coef.X, file = "data/coef.X.Rda")
 
 
 #################################################################################
@@ -193,64 +195,66 @@ save(coef.X, file = "coef.X.Rda")
 #################################################################################
 rm(list=ls())
 cl <- makeCluster(6)
-parLapply(cl, c(1:6), function(x) {source(file = "Source.R")})
+parLapply(cl, c(1:6), function(x) {source(file = "code/Source.R")})
 # Adjust intercepts of missingness indicators' generation for each exposure and m-DAG setting. 
-# Here we illustrated the progress using an example of 10% exposure in m-DAG C.
-X="10%"; m.DAG="C"
 
-# Step 1: rough search
-rough.search <- parLapply(cl, c(1:6), function(Y){
-  X="10%"; m.DAG="C"; n=100000
-  lapply(c(1:5), function(missingness){
-    if(is.data.frame(coef.M[[X]][[m.DAG]][[Y]][[missingness]])) {
-      coef.M[[X]][[m.DAG]][[Y]][[missingness]][1,] <- lapply(seq(-5,-1,0.1), function(delta){
-        adj.coef <- rbind(rep(delta,4), coef.M[[X]][[m.DAG]][[Y]][[missingness]][-1,])
-        lapply(seq(1000,30000,1000), function(seed){
-          gen.M(coef.X[[X]], Y, seed, n, adj.coef) 
-        }) %>% ldply(., data.frame) %>% apply(., 2, mean) %>% t(.) %>% `-`(c(0.15,0.15,0.2,0.2)) %>% 
-          abs(.) %>% cbind(adj.coef[1,], .)
-      }) %>% ldply(., data.frame) %>% {lapply(c(1:4), function(i){.[.[,i+4]==min(.[,i+4]),i]})} %>% 
-        ldply(., data.frame) %>% t(.)
-    }
-  })
-})
-load("coef.M.Rda")
-lapply(c(1:6), function(Y){
-  lapply(c(1:5), function(missingness){
-    if(is.data.frame(coef.M[[X]][[m.DAG]][[Y]][[missingness]])) {
-      coef.M[[X]][[m.DAG]][[Y]][[missingness]][1,] <<- rough.search[[Y]][[missingness]]
-    }
-  })
-})
-save(coef.M, file = "coef.M.Rda")
-
-# step 2: exact search
-exact.search <- parLapply(cl, c(1:6), function(Y){
-  load("coef.M.Rda")
-  lapply(c(1:5), function(missingness){
-    X="10%"; m.DAG="C";n=100000
-    if(is.data.frame(coef.M[[X]][[m.DAG]][[Y]][[missingness]])) {
-      coef.M[[X]][[m.DAG]][[Y]][[missingness]][1,] <- lapply(seq(-0.1,0.1,0.001), function(delta){
-        adj.coef <- coef.M[[X]][[m.DAG]][[Y]][[missingness]] 
-        adj.coef[1,] <- adj.coef[1,] + delta
-        lapply(seq(1000,30000,1000), function(seed){
-          gen.M(coef.X[[X]], Y, seed, n, adj.coef) 
-        }) %>% ldply(., data.frame) %>% apply(., 2, mean) %>% t(.) %>% `-`(c(0.15,0.15,0.2,0.2)) %>% 
-          abs(.) %>% cbind(adj.coef[1,], .)
-      }) %>% ldply(., data.frame) %>% {lapply(c(1:4), function(i){.[.[,i+4]==min(.[,i+4]),i]})} %>% 
-        ldply(., data.frame) %>% t(.)
-    }
-  })
-})
-load("coef.M.Rda")
-lapply(c(1:6), function(Y){
-  lapply(c(1:5), function(missingness){
-    if(is.data.frame(coef.M[[X]][[m.DAG]][[Y]][[missingness]])) {
-      coef.M[[X]][[m.DAG]][[Y]][[missingness]][1,] <<- exact.search[[Y]][[missingness]]
-    }
-  })
-})
-save(coef.M, file = "coef.M.Rda")
+for(X in c("10%", "50%")){
+  for(m.DAG in LETTERS[1:10]){
+    # Step 1: rough search
+    rough.search <- parLapply(cl, c(1:6), function(Y){
+      n=100000
+      lapply(c(1:5), function(missingness){
+        if(is.data.frame(coef.M[[X]][[m.DAG]][[Y]][[missingness]])) {
+          coef.M[[X]][[m.DAG]][[Y]][[missingness]][1,] <- lapply(seq(-5,-1,0.1), function(delta){
+            adj.coef <- rbind(rep(delta,4), coef.M[[X]][[m.DAG]][[Y]][[missingness]][-1,])
+            lapply(seq(1000,30000,1000), function(seed){
+              gen.M(coef.X[[X]], Y, seed, n, adj.coef) 
+            }) %>% ldply(., data.frame) %>% apply(., 2, mean) %>% t(.) %>% `-`(c(0.15,0.15,0.2,0.2)) %>% 
+              abs(.) %>% cbind(adj.coef[1,], .)
+          }) %>% ldply(., data.frame) %>% {lapply(c(1:4), function(i){.[.[,i+4]==min(.[,i+4]),i]})} %>% 
+            ldply(., data.frame) %>% t(.)
+        }
+      })
+    })
+    load("data/coef.M.Rda")
+    lapply(c(1:6), function(Y){
+      lapply(c(1:5), function(missingness){
+        if(is.data.frame(coef.M[[X]][[m.DAG]][[Y]][[missingness]])) {
+          coef.M[[X]][[m.DAG]][[Y]][[missingness]][1,] <<- rough.search[[Y]][[missingness]]
+        }
+      })
+    })
+    save(coef.M, file = "data/coef.M.Rda")
+    
+    # step 2: exact search
+    exact.search <- parLapply(cl, c(1:6), function(Y){
+      load("data/coef.M.Rda")
+      lapply(c(1:5), function(missingness){
+        n=100000
+        if(is.data.frame(coef.M[[X]][[m.DAG]][[Y]][[missingness]])) {
+          coef.M[[X]][[m.DAG]][[Y]][[missingness]][1,] <- lapply(seq(-0.1,0.1,0.001), function(delta){
+            adj.coef <- coef.M[[X]][[m.DAG]][[Y]][[missingness]] 
+            adj.coef[1,] <- adj.coef[1,] + delta
+            lapply(seq(1000,30000,1000), function(seed){
+              gen.M(coef.X[[X]], Y, seed, n, adj.coef) 
+            }) %>% ldply(., data.frame) %>% apply(., 2, mean) %>% t(.) %>% `-`(c(0.15,0.15,0.2,0.2)) %>% 
+              abs(.) %>% cbind(adj.coef[1,], .)
+          }) %>% ldply(., data.frame) %>% {lapply(c(1:4), function(i){.[.[,i+4]==min(.[,i+4]),i]})} %>% 
+            ldply(., data.frame) %>% t(.)
+        }
+      })
+    })
+    load("data/coef.M.Rda")
+    lapply(c(1:6), function(Y){
+      lapply(c(1:5), function(missingness){
+        if(is.data.frame(coef.M[[X]][[m.DAG]][[Y]][[missingness]])) {
+          coef.M[[X]][[m.DAG]][[Y]][[missingness]][1,] <<- exact.search[[Y]][[missingness]]
+        }
+      })
+    })
+    save(coef.M, file = "data/coef.M.Rda")
+  }
+}
 stopCluster(cl)
 
 
@@ -277,7 +281,7 @@ save(sample.size, file = "sample.size.Rda")
 #################################################################################
 rm(list=ls())
 cl <- makeCluster(16)
-parLapply(cl, c(1:16), function(x) {source(file = "Source.R")})
+parLapply(cl, c(1:16), function(x) {source(file = "code/Source.R")})
 boot.n <- parLapply(cl, seq(192, 272, 10), function(boot.R){
   lapply(c(1:4), function(Y){
     lapply(seq(0, 200000, 100), function(seed){
@@ -298,31 +302,33 @@ stopCluster(cl)
 #  Generate incomplete data for missingness methods                             #
 #################################################################################
 rm(list=ls())
-source(file = "Source.R")
+source(file = "code/Source.R")
 set.seed(20220128)
-n.sim <- 2000; setting = "50%.C" 
-# Generate simulation data for all settings. The example of 10% exposure prevalence in m-DAG C.
-simu.data <- lapply(c(1:30), function(n){vector("list", n.sim)})
+n.sim <- 2000
 
-lapply(c(1:n.sim), function(i){
-  lapply(c(1:6), function(Y){
-    lapply(c(1:5), function(m){
-      X <- str_split(setting, "\\.")[[1]][1]; m.DAG <- str_split(setting, "\\.")[[1]][2]
-      if(X == "50%"){n = 700} else if(Y == 1){n = 1400} else if(Y == 2|5){n = 2200} 
-      else if(Y == 3|6){n = 2000} else if(Y == 4){n = 2700}
-      if(is.data.frame(coef.M[[X]][[m.DAG]][[Y]][[m]])) {
-        simu.data[[(Y-1)*5+m]][[i]] <<- gen(X, m.DAG, Y, m, n = n)
-      }
-    })
-  })
-}) 
-save(simu.data, file = paste("data",setting,"Rda", sep = "."))
-
-# Save an empty dataset for simulation results 
-simu.res <- as.data.frame(matrix(0,1,18)) %>% `names<-`(c("Estimate", "Bias", "PrBias", "Bias.MCSE", 
-            "EmpSE", "EmpSE.MCSE", "ModSE", "ModSE.MCSE", "Coverage", "Coverage.MCSE", "ReErModSE", 
-            "ReErModSE.MCSE", "Power", "Missingness", "Outcome", "NA.prop", "Method", "scenario"))
-save(simu.res, file = paste("res",setting,"Rda", sep = "."))
+for (X in c("10%", "50%")){
+  for (m.DAG in LETTERS[1:10]){
+    # Generate simulation data for all settings
+    simu.data <- lapply(c(1:30), function(n){vector("list", n.sim)})
+    lapply(c(1:n.sim), function(i){
+      lapply(c(1:6), function(Y){
+        lapply(c(1:5), function(m){
+          if(X == "50%"){n = 700} else if(Y == 1){n = 1400} else if(Y == 2|5){n = 2200} 
+          else if(Y == 3|6){n = 2000} else if(Y == 4){n = 2700}
+          if(is.data.frame(coef.M[[X]][[m.DAG]][[Y]][[m]])) {
+            simu.data[[(Y-1)*5+m]][[i]] <<- gen(X, m.DAG, Y, m, n = n)
+          }
+        })
+      })
+    }) 
+    save(simu.data, file = paste("data/data",X,m.DAG,"Rda", sep = "."))
+    # Save an empty dataset for simulation results 
+    simu.res <- as.data.frame(matrix(0,1,18)) %>% `names<-`(c("Estimate", "Bias", "PrBias", "Bias.MCSE", 
+    "MSE", "EmpSE", "EmpSE.MCSE", "ModSE", "ModSE.MCSE", "Coverage", "Coverage.MCSE", "ReErModSE", 
+    "ReErModSE.MCSE", "Power", "Missingness", "Outcome", "NA.prop", "Method", "scenario"))
+    save(simu.res, file = paste("results/res",X,m.DAG,"Rda", sep = "."))
+  }
+}
 
 # Check exposure and complete-case proportions
 lapply(c(1:20), function(i){

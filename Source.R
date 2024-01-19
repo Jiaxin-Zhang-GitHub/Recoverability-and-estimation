@@ -17,16 +17,22 @@ library(purrr)
 library(parallel) 
 library(mefa)
 library(stringr)
-load("coef.M.Rda")
-load("coef.X.Rda")
+load("data/coef.M.Rda")
+load("data/coef.X.Rda")
 set.seed(20230221)
 
-# function: get coeffivicients for generation
+# Function to get coefficients for data generation
+# @param i List returned from glm function
+# @return regression coefficients from the glm
 coeff <- function(i){
   return(t(as.matrix(coef(i))))
 }
 
-# function: generate exposure 
+# Function to generate exposure
+# @param n Number of observations
+# @param seed Seed number for random number generator
+# @param coef.X Regression coefficients for generation
+# @return data.frame of data generation
 gen.X <- function(n, seed, coef.X) {
   set.seed(seed)
   unit1 <- rep(1, n)
@@ -41,7 +47,11 @@ gen.X <- function(n, seed, coef.X) {
   return(sim)
 }
 
-# function: generate outcomes
+# Function to generate outcomes
+# @param n Number of observations
+# @param seed Seed number for random number generator
+# @param coef.X Regression coefficients for generation
+# @return data.frame of data generation
 gen.Y <- function(n, seed, coef.X) {
   set.seed(seed)
   sim <- gen.X(n, seed, coef.X)
@@ -63,7 +73,13 @@ gen.Y <- function(n, seed, coef.X) {
   return(sim)
 }
 
-# function: generate missingness indicators
+# Function to generate missingness indicators
+# @param n Number of observations
+# @param seed Seed number for random number generator
+# @param coef.X Regression coefficients for generation
+# @param Y Scenario for outcome generation
+# @param adj.coef Regression coefficients for missingness generation
+# @return data.frame of data generation
 gen.M <- function(coef.X, Y, seed, n, adj.coef){
   sim <- gen.X(n, seed, coef.X)
   C.C <- rbind(sim$C1*sim$C4, sim$C2*sim$C4, sim$C3*sim$C4, sim$C4*sim$C5, sim$C3*sim$C5)
@@ -78,13 +94,22 @@ gen.M <- function(coef.X, Y, seed, n, adj.coef){
   lapply(adj.coef, function(coef){rbinom(n, 1, inv.logit(coef %*% t(sim[,1:13]))) %>% mean(.)}) 
 } 
 
-# function: convert value to NA
+# Function to convert value to NA
+# @param variable Variable need to convert
+# @param indicator Missingness indicator
+# @return incomplete variable 
 na <- function(variable, indicator) {
   variable <- ifelse(indicator == 1, NA, variable)
   return(variable)
 }
 
-# function: generate incomplete data for a given exposure proportion and m-DAG
+# Function to generate incomplete data for a given exposure proportion and m-DAG
+# @param n Number of observations
+# @param X Scenario for exposure generation
+# @param Y Scenario for outcome generation
+# @param m.DAG Scenario for m-DAG
+# @param m Scenario for missingness generation
+# @return data.frame of data generation
 gen <- function(X, m.DAG, Y, m, n){
   unit1 <- rep(1, n)
   sim <- data.frame(unit1)
@@ -111,7 +136,10 @@ gen <- function(X, m.DAG, Y, m, n){
   sim <- sim[,c(2:9,15,16)]
 } 
 
-# function: the ACE estimate given by g-computation
+# Function to estimate the ACE using g-computation
+# @param data data.frame to compute the ACE
+# @param analysis Analysis model
+# @return ACE estimates
 ACE <- function(data, analysis){
   fit <- try(eval(analysis, data), silent = T)
   if(!grepl("Error", fit[1], fixed = T)) {
@@ -119,7 +147,11 @@ ACE <- function(data, analysis){
            predict(fit, newdata = replace(data, "X", as.factor(0)), type = 'response'), na.rm = T)
   } else {NA}
 }
-# function: g-computation for standard error and p-value
+# Function to estimate the ACE using g-computation for function: gcomp
+# @param data data.frame to compute the ACE
+# @param analysis Analysis model
+# @param ind Indicator for bootstrapped observations
+# @return ACE estimates
 gcomp.fun <- function(data, ind, analysis){
   data <- data[ind,]
   fit <- try(eval(analysis, data), silent = T)
@@ -129,6 +161,11 @@ gcomp.fun <- function(data, ind, analysis){
   } else {NA}
 }
 
+# Function to compute standard error and p-value of the ACE estimates using bootstrapping 
+# @param data data.frame to compute the ACE
+# @param analysis Analysis model
+# @param boot.R Number for bootstrapping
+# @return ACE estimate and its standard error and p-value
 gcomp <- function(data, boot.R, analysis){
   boot.result <- boot(data, gcomp.fun, stype = "i", R = boot.R, analysis = analysis, parallel = "multicore", ncpus = 4)
   as.data.frame(cbind(boot.result$t0, sqrt(var(boot.result$t)[1,1]),
@@ -136,14 +173,16 @@ gcomp <- function(data, boot.R, analysis){
   )) %>% `names<-`(c("estimate","std.error","p.value"))
 }
 
-# function: get the bootstrapping number via Donald's method
+# Function to get the bootstrapping number via Donald's method
+# @param data data.frame to compute the ACE
+# @param analysis Analysis model
+# @param boot.R Initial number for bootstrapping
+# @return ACE estimate and three-step bootstrapping number
 boot.r <- function(data, boot.R, analysis){
   boot.result <- boot(data, gcomp.fun, stype = "i", R = boot.R, analysis = analysis, parallel = "multicore", ncpus = 4)
-  as.data.frame(cbind(boot.result$t0, 
-                      w_hat.se <- ((sum((boot.result$t - mean(boot.result$t))^4))/((boot.R-1)*((var(boot.result$t)[1,1])^2)) -1)/4,
-                      B.se <- as.integer(1.96^2*100*w_hat.se),
-                      max.B <- max(boot.R, B.se)
-  )) %>% `names<-`(c("estimate","w_hat.se","B.se","max.B"))
+  w_hat.se <- ((sum((boot.result$t - mean(boot.result$t))^4))/((boot.R-1)*((var(boot.result$t)[1,1])^2)) -1)/4
+  B.se <- as.integer(1.96^2*100*w_hat.se)
+  as.data.frame(cbind(boot.result$t0, max.B <- max(boot.R, B.se))) %>% `names<-`(c("estimate","max.B"))
 }
 
 # list: analysis models 
@@ -154,7 +193,9 @@ analysis <- list(substitute(lm(I ~ C1 + C2 + C3 + C4 + C5 + X + C1*C4 + C2*C4 + 
                  substitute(lm(V ~ C1 + C2 + C3 + C4 + C5 + X + X*C3 + C1*C4 + C2*C4 + C3*C4 + C5*C4 + C3*C5)),
                  substitute(lm(VI ~ C1 + C2 + C3 + C4 + C5 + X + X*C4 + C1*C4 + C2*C4 + C3*C4 + C5*C4 + C3*C5)))
 
-# function: check exposure and complete-case proportions
+# Function to check exposure and complete-case proportions
+# @param dat data.frame
+# @return exposure prevalence, missingness proportion in each incomplete variable and complete-case proportion
 prop <- function(dat){
   X.prop <- mean(as.numeric(as.character(dat$X)), na.rm = T)
   miss.prop <- lapply(dat[,5:8], function(x){sum(is.na(x))/nrow(dat)}) %>% as.data.frame(.)

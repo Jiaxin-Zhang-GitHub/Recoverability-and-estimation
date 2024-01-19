@@ -13,9 +13,12 @@ library(gtable)
 library(scales)
 library(dplyr)
 
+# Function to obtain and tidy all simulation results for the given exposure prevalence. 
+# @param x Exposure prevalence, 10% or 50%
+# @return data.frame of simulation results
 get.results <- function(x){
   result <- lapply(LETTERS[1:10], function(m.DAG){
-    load(paste("res",x,m.DAG,"Rda", sep = ".")) 
+    load(paste("results/res",x,m.DAG,"Rda", sep = ".")) 
     result <- simu.res[-1,]
   }) %>% ldply(., data.frame) 
   result[,1:14] <- apply(result[,1:14], 2, as.numeric)
@@ -32,10 +35,12 @@ res.10 <- get.results("10%")
 res.50 <- get.results("50%")
 summary(res.10)
 summary(res.50)
-save(res.10, file = "res.10%.Rda")
-save(res.50, file = "res.50%.Rda")
+save(res.10, file = "results/res.10%.Rda")
+save(res.50, file = "results/res.50%.Rda")
 
-
+# Function to add top and right labels to plots
+# @param plot The plot to add labels
+# @return plot with labels
 add.label.T.R <- function(plot, label.T = "m-DAGs", label.R = "Methods"){
   grob <- ggplotGrob(plot)
   posT <- subset(grob$layout, grepl("strip-t", name), select = t:r)
@@ -52,6 +57,9 @@ add.label.T.R <- function(plot, label.T = "m-DAGs", label.R = "Methods"){
   grid.draw(plot)
 }
 
+# Function to plot relative bias for each approach
+# @param data Simulation results data.frame
+# @return plot of relative bias
 ReBias <- function(data){ggplot(data, aes(x = Missingness, y = Outcome)) + 
     geom_raster(aes(fill = PrBias), hjust = 0.5, vjust = 0.5, interpolate=F) +
     geom_text(aes(label = round(PrBias)), size=4, colour = ifelse(data$PrBias >= -49.5 & data$PrBias <= 49.5, "black", "white")) +
@@ -66,14 +74,17 @@ ReBias <- function(data){ggplot(data, aes(x = Missingness, y = Outcome)) +
     theme(strip.text.y = element_text(angle = 0)) 
 }
 # Produce Figure 3 of the manuscript
-png(file = "Figure_3a.png", width = 1800, height = 900)
+png(file = "results/Figure_3a.png", width = 1800, height = 900)
 ReBias(res.10) %>% `+`(labs(subtitle = "Low exposure prevalence (10%)")) %>% add.label.T.R(.) 
 dev.off()
 
-png(file = "Figure_3b.png", width = 1800, height = 900)
+png(file = "results/Figure_3b.png", width = 1800, height = 900)
 ReBias(res.50) %>% `+`(labs(subtitle = "Moderate exposure prevalence (50%)")) %>% add.label.T.R(.)
 dev.off()
 
+# Function to plot empirical standard error for each approach
+# @param data Simulation results data.frame
+# @return plot of empirical standard error
 EmpSE <- function(data){ggplot(data, aes(x = Missingness, y = Outcome)) + 
     geom_raster(aes(fill = EmpSE), hjust = 0.5, vjust = 0.5, interpolate=F) +
     geom_text(aes(label = round(EmpSE,2)), size=4, colour = "white") +
@@ -88,14 +99,17 @@ EmpSE <- function(data){ggplot(data, aes(x = Missingness, y = Outcome)) +
     theme(strip.text.y = element_text(angle = 0)) 
 }
 # Produce Figure 4 of the manuscript
-png(file = "Figure_4a.png", width = 1800, height = 900)
+png(file = "results/Figure_4a.png", width = 1800, height = 900)
 EmpSE(res.10) %>% `+`(labs(subtitle = "Low exposure prevalence (10%)")) %>% add.label.T.R(.) 
 dev.off()
 
-png(file = "Figure_4b.png", width = 1800, height = 900)
+png(file = "results/Figure_4b.png", width = 1800, height = 900)
 EmpSE(res.50) %>% `+`(labs(subtitle = "Moderate exposure prevalence (50%)")) %>% add.label.T.R(.)
 dev.off()
 
+# Function to plot coverage for each approach
+# @param data Simulation results data.frame
+# @return plot of coverage
 Coverage <- function(data){ggplot(data, aes(x = Missingness, y = Outcome)) + 
     geom_raster(aes(fill = Coverage), hjust = 0.5, vjust = 0.5, interpolate=F) +
     geom_text(aes(label = round(Coverage)), size=4, colour = ifelse(round(data$Coverage) >= 90, "black", "white")) +
@@ -110,14 +124,17 @@ Coverage <- function(data){ggplot(data, aes(x = Missingness, y = Outcome)) +
     theme(strip.text.y = element_text(angle = 0)) 
 }
 # Produce Figure 5 of the manuscript
-png(file = "Figure_5a.png", width = 1800, height = 900)
+png(file = "results/Figure_5a.png", width = 1800, height = 900)
 Coverage(res.10) %>% `+`(labs(subtitle = "Low exposure prevalence (10%)")) %>% add.label.T.R(.) 
 dev.off()
 
-png(file = "Figure_5b.png", width = 1800, height = 900)
+png(file = "results/Figure_5b.png", width = 1800, height = 900)
 Coverage(res.50) %>% `+`(labs(subtitle = "Moderate exposure prevalence (50%)")) %>% add.label.T.R(.)
 dev.off()
 
+# Function to plot MSE for each approach
+# @param data Simulation results data.frame
+# @return plot of MSE
 MSE <- function(data){ggplot(data, aes(x = Missingness, y = Outcome)) + 
     geom_raster(aes(fill = MSE), hjust = 0.5, vjust = 0.5, interpolate=F) +
     geom_text(aes(label = round(MSE,2)), size=4, colour = "white") +

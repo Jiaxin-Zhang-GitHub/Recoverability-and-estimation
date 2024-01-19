@@ -19,7 +19,9 @@ library(smcfcs)
 # setting parameters for bootstrapping numbers, simulation replications, number of multiply imputed data sets and imputation iteration numbers 
 boot.R = 240; n.sim = 2000; m = 5; maxit = 5
 
-# function: g-computation 
+# Function to conduct g-computation 
+# @param data Data for analysis
+# @return ACE estimate, standard error, p-value, low and up bound for 95% confidence interval, outcome and missingness scenarios
 gcomp <- function(data, Outcome = data[1,10], Missingness = data[1,9]){
   ana <- analysis[Outcome]
   gcomp.fun <- function(data, ind, analysis){
@@ -38,7 +40,12 @@ gcomp <- function(data, Outcome = data[1,10], Missingness = data[1,9]){
   )) %>% `names<-`(c("estimate", "std.error", "p.value", "low", "up", "outcome", "missingness"))
 }
 
-# function: pooling imputation results
+# Function to pool imputation results
+# @param MI List of return from multiple imputation methods
+# @param Outcome Outcome scenario
+# @param Missingness Missingness scenario
+# @param Method Missing data method
+# @return Pooled results
 MI.pool <- function(MI, Outcome, Missingness, Method){
   m <- ifelse(length(MI) == 22, MI$m, length(MI[["impDatasets"]]))
   g.res <- lapply(c(1:m), function(i){
@@ -61,7 +68,10 @@ analysis <- list(substitute(lm(Y ~ C1 + C2 + C3 + C4 + C5 + X + C1*C4 + C2*C4 + 
                  substitute(lm(Y ~ C1 + C2 + C3 + C4 + C5 + X + X*C3 + C1*C4 + C2*C4 + C3*C4 + C5*C4 + C3*C5)),
                  substitute(lm(Y ~ C1 + C2 + C3 + C4 + C5 + X + X*C4 + C1*C4 + C2*C4 + C3*C4 + C5*C4 + C3*C5)))
 
-# function: performance indicator
+# Function to calculate performance measurements
+# @param inc Analysis results from missing data methods 
+# @param n.sim Number of replication in simulation
+# @return performance measurements
 perform.ind <- function(inc, n.sim) {
   inc[,1:5] <- apply(inc[,1:5], 2, as.numeric)
   Estimate = mean(inc$estimate, na.rm = T)
@@ -84,28 +94,36 @@ perform.ind <- function(inc, n.sim) {
                ReErModSE, ReErModSE.MCSE, Power, Missingness, Outcome, NA.prop))
 }
 
-# Method II: Simple Multiple Imputation
+# Function to conduct Method II: Simple Multiple Imputation
+# @param dat Data to impute
+# @return ACE estimate, standard error, p-value, low and up bound for 95% confidence interval, outcome and missingness scenarios, and imputation method
 MI.Sim <- function(dat) {
   Outcome = dat[1,10]; Missingness = dat[1,9]; dat <- dat[,1:8]
   mice(data = dat, m = m, maxit = maxit, method = c("norm","","","","logreg","logreg","logreg","norm"), vis = "monotone", print = F) %>%
     MI.pool(., Outcome, Missingness, Method = "MI.Sim")
 }
 
-# Method III: Multiple Imputation using classification and regression trees
+# Function to conduct Method III: Multiple Imputation using classification and regression trees
+# @param dat Data to impute
+# @return ACE estimate, standard error, p-value, low and up bound for 95% confidence interval, outcome and missingness scenarios, and imputation method
 MI.CART <- function(dat) {
   Outcome = dat[1,10]; Missingness = dat[1,9]; dat <- dat[,1:8]
   mice(dat, method = "cart", m = m, maxit = maxit, print = F) %>%
     MI.pool(., Outcome, Missingness, Method = "MI.CART")
 }
 
-# Method IV: Multiple Imputation using random forest
+# Function to conduct Method IV: Multiple Imputation using random forest
+# @param dat Data to impute
+# @return ACE estimate, standard error, p-value, low and up bound for 95% confidence interval, outcome and missingness scenarios, and imputation method
 MI.RF <- function(dat) {
   Outcome = dat[1,10]; Missingness = dat[1,9]; dat <- dat[,1:8]
   mice(dat, method = "rf", m = m, maxit = maxit, print = F) %>%
     MI.pool(., Outcome, Missingness, Method = "MI.RF")
 }
 
-# Method V: Exposure-confounder Multiple Imputation
+# Function to conduct Method V: Exposure-confounder Multiple Imputation
+# @param dat Data to impute
+# @return ACE estimate, standard error, p-value, low and up bound for 95% confidence interval, outcome and missingness scenarios, and imputation method
 MI.EC <- function(dat) {
   Outcome = dat[1,10]; Missingness = dat[1,9]; dat <- dat[,1:8]
   dat$C1.C4 <- (as.numeric(as.character(dat$C4)))*(as.numeric(as.character(dat$C1)))
@@ -137,7 +155,9 @@ MI.EC <- function(dat) {
     MI.pool(., Outcome, Missingness, Method = "MI.EC")
 }
 
-# Method VI: Approximately compatiable Multiple Imputation
+# Function to conduct Method VI: Approximately compatiable Multiple Imputation
+# @param dat Data to impute
+# @return ACE estimate, standard error, p-value, low and up bound for 95% confidence interval, outcome and missingness scenarios, and imputation method
 MI.Com <- function(dat) {
   Outcome = dat[1,10]; Missingness = dat[1,9]; dat <- dat[,1:8]
   dat$C1.C4 <- (as.numeric(as.character(dat$C4)))*(as.numeric(as.character(dat$C1)))
@@ -178,7 +198,9 @@ MI.Com <- function(dat) {
     MI.pool(., Outcome, Missingness, Method = "MI.Com")
 }
 
-# Method VI: Substantive model compatible Multiple Imputation
+# Function to conduct Method VI: Substantive model compatible Multiple Imputation
+# @param dat Data to impute
+# @return ACE estimate, standard error, p-value, low and up bound for 95% confidence interval, outcome and missingness scenarios, and imputation method
 MI.SMC <- function(dat) {
   Outcome = dat[1,10]; Missingness = dat[1,9]; dat <- dat[,1:8]; smformula <- paste(analysis[Outcome][[1]][2], "+ A")
   smcfcs(dat, smtype = "lm", smformula = smformula, method = c("","","","","logreg","logreg","logreg",""), m = m, numit = maxit) %>%
