@@ -6,12 +6,15 @@ library(magrittr)
 library(plyr)
 library(stringr)
 
-load("VAHCS.CleanData.Rda")
+load("data/VAHCS.CleanData.Rda")
 colnames(dat) <- c("A","C1","C2","C3","C4","C5","X","Y")
 set.seed(1957427)
-source(file = "Methods.R")
+source(file = "code/Methods.R")
 boot.R = 240; m = 100; maxit = 10; Missingness = NA; Outcome = 4
-# Overwrite SMC approach for case study 
+
+# Function to conduct Method VI: Substantive model compatible Multiple Imputation in case study
+# @param dat Data to impute
+# @return ACE estimate, standard error, p-value, low and up bound for 95% confidence interval, outcome and missingness scenarios, and imputation method
 MI.SMC <- function(dat) {
   Outcome = dat[1,10]; Missingness = dat[1,9]; dat <- dat[,1:8]; smformula <- paste(analysis[Outcome][[1]][2],"+ A")
   smcfcs(dat, smtype = "lm", smformula = smformula, method = c("norm","","","","logreg","logreg","logreg",""), m = m, numit = maxit) %>%
@@ -41,5 +44,4 @@ case <- rbind(cbind(gcomp(dat),method="CCA"), MI.Sim(dat), MI.CART(dat), MI.RF(d
 # MI using classification and regression trees (MI.CART); MI using random forest (MI.RF);
 # exposure-confounder MI (MI.EC); approximately compatible MI (MI.Com); substantive model compatible MI (MI.SMC)
 case
-save(case, file="Case.Rda")
-
+save(case, file="results/Case.Rda")
